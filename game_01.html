@@ -3,27 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <title>Title</title>
-  <style>* { padding: 0; margin: 0; } canvas { display: block; margin: 100px auto 0; }</style>
+  <style>* { padding: 0; margin: 0; } canvas { display: block; margin: 100px auto 0; border: 1px solid; }</style>
 </head>
 <body>
+<div id="myData" style="padding: 10px">1</div>
 <canvas id="myCanvas" width="600" height="600"></canvas>
 
 <script>
   let canvas = document.getElementById("myCanvas"),
+      myData = document.getElementById("myData"),
       ctx = canvas.getContext("2d"),
-      maps_column = maps_row = 30,
+      maps_column = maps_row = 10,
       item_width = item_height = 30,
+      canvas_max_x = canvas.width / item_width,
+      canvas_max_y = canvas.height / item_height,
       item_offset_top = item_offset_left = 0,
       item_padding = 0,
       item_x,
       item_y,
       maps = [],
+      map_start_draw_x = map_start_draw_y = 2,
       subjects = [],
       subject,
       gamer_x = 0,
       gamer_y = 0,
       i,
+      max_i,
       j,
+      max_j,
+      f_style,
       right_pressed,
       left_pressed,
       up_pressed,
@@ -33,30 +41,31 @@
   // Набор объектов на карте
   subjects[0] = { color: '#8dfc8d' };
   subjects[1] = { color: '#74ee74' };
+  subjects[2] = { color: '#6fe36f' };
 
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
 
   function keyDownHandler(e) {
-    if (e.code == "ArrowRight") {
+    if (e.code == 'ArrowRight' || e.code == 'KeyD') {
       right_pressed = true;
-    } else if (e.code == 'ArrowLeft') {
+    } else if (e.code == 'ArrowLeft' || e.code == 'KeyA') {
       left_pressed = true;
-    } else if (e.code == 'ArrowUp') {
+    } else if (e.code == 'ArrowUp' || e.code == 'KeyW') {
       up_pressed = true;
-    } else if (e.code == 'ArrowDown') {
+    } else if (e.code == 'ArrowDown' || e.code == 'KeyS') {
       down_pressed = true;
     }
   }
 
   function keyUpHandler(e) {
-    if (e.code == 'ArrowRight') {
+    if (e.code == 'ArrowRight' || e.code == 'KeyD') {
       right_pressed = false;
-    } else if (e.code == 'ArrowLeft') {
+    } else if (e.code == 'ArrowLeft' || e.code == 'KeyA') {
       left_pressed = false;
-    }else if (e.code == 'ArrowUp') {
+    } else if (e.code == 'ArrowUp' || e.code == 'KeyW') {
       up_pressed = false;
-    } else if (e.code == 'ArrowDown') {
+    } else if (e.code == 'ArrowDown' || e.code == 'KeyS') {
       down_pressed = false;
     }
   }
@@ -82,29 +91,36 @@
    * Отрисовка карты
    */
   function drawMaps() {
-    for(i = 0; i < maps_column; i++) {
-      for(j = 0; j < maps_row; j++) {
-        if(maps[i][j].status === 1) {
-          item_x = (j * (item_width + item_padding)) + item_offset_left;
-          item_y = (i * (item_height + item_padding)) + item_offset_top;
+    max_i = maps_column > canvas_max_x ? canvas_max_x : maps_column;
+    max_j = maps_row > canvas_max_y ? canvas_max_y : maps_row;
+
+    for(i = map_start_draw_x; i < max_i; i++) {
+      for(j = map_start_draw_y; j < max_j; j++) {
+        item_x = (j * (item_width + item_padding)) + item_offset_left;
+        item_y = (i * (item_height + item_padding)) + item_offset_top;
+
+        f_style = 'white';
+        if(maps[i][j] && maps[i][j].status === 1) {
           subject = maps[i][j].subject;
-
-
+          f_style = subject.color;
           maps[i][j].x = item_x;
           maps[i][j].y = item_y;
-          ctx.beginPath();
-          ctx.rect(item_x, item_y, item_width, item_height);
-          ctx.fillStyle = subject.color;
-          ctx.fill();
-          ctx.closePath();
         }
+
+        ctx.beginPath();
+        ctx.rect(item_x, item_y, item_width, item_height);
+        ctx.fillStyle = f_style;
+        ctx.fill();
+        ctx.closePath();
       }
     }
   }
 
   function drawGamer() {
+    setData(gamer_x + ':' + gamer_y);
+
     ctx.beginPath();
-    ctx.rect(gamer_x, gamer_y, item_width, item_height);
+    ctx.rect(gamer_x * item_width, gamer_y * item_width, item_width, item_height);
     ctx.fillStyle = "#000000";
     ctx.fill();
     ctx.closePath();
@@ -117,16 +133,22 @@
     drawMaps();
     drawGamer();
 
-    if (right_pressed) gamer_x += item_width;
-    if (left_pressed) gamer_x -= item_width;
-    if (up_pressed) gamer_y -= item_width;
-    if (down_pressed) gamer_y += item_width;
+    if (right_pressed && gamer_x < maps_column - 1) gamer_x += 1;
+    if (left_pressed && gamer_x > 0) gamer_x -= 1;
+    if (up_pressed && gamer_y > 0) gamer_y -= 1;
+    if (down_pressed && gamer_y < maps_row - 1) gamer_y += 1;
 
     requestAnimationFrame(draw);
+    // clearInterval(interval); // Needed for Chrome to end game
+  }
+
+  function setData(d) {
+    myData.innerText = d;
   }
 
   generateMaps();
   draw();
+  //let interval = setInterval(draw, 50);
 </script>
 </body>
 </html>
