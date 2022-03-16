@@ -16,25 +16,33 @@
 <canvas id="myCanvas" width="600" height="600"></canvas>
 
 <script>
+  let world = {
+    ff: 1,
+    f: function () {
+      return this.ff();
+    }
+  };
+
+
+
   let canvas = document.getElementById("myCanvas"),
       log = document.getElementById("log"),
       myData = document.getElementById("myData"),
       ctx = canvas.getContext("2d"),
-      maps_x = 300,     // размер карты
-      maps_y = 300,
+      maps_x = 500,     // размер карты
+      maps_y = 500,
+      maps = [],  // карта
       maps_x_gamer = 0, // положение игрока на карте
       maps_y_gamer = 0,
       map_offset_x = 0, // сдвиг карты в окне
       map_offset_y = 0,
-      item_width = item_height = 30,  // размер элемента на карте
+      item_width = item_height = 30,  // размер элемента на карте (30)
       canvas_item_x = canvas.width / item_width,    // макс. кол-во элементво карты в окне
       canvas_item_y = canvas.height / item_height,
       item_offset_top = item_offset_left = 0, // сдвиг элемент при отрисовке (квадрат)
       item_padding = 0, // отступы
       item_x, // координаты элемента карты при отрисовке в окне
       item_y,
-      maps = [],  // карта
-      
       subjects = [],  // набор объктов в карте
       subject,
       gamer_x = gamer_y = 0, // координаты игрока в окне
@@ -48,16 +56,6 @@
   ;
 
   log.innerText = 'canvas_item_x : ' + canvas_item_x + ' | canvas_item_y : ' + canvas_item_y;
-
-  // Набор объектов на карте
-  subjects[0] = { background: '#8dfc8d' };
-  subjects[1] = { background: '#74ee74' };
-  subjects[2] = { background: '#6fe36f' };
-
-  /*subjects[0] = { color: '#ffdd92' };
-  subjects[1] = { color: '#e8c881' };
-  subjects[2] = { color: '#e7cc93' };*/
-
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
 
@@ -85,16 +83,24 @@
     }
   }
 
+
+
   /**
    * Генерирование карты
+   * виды поверхностей: зелень : песок : вода
    */
+  let surfaces_background = ['#8dfc8d', '#74ee74', '#6fe36f'];
+
+
   function generateMaps() {
     for(i = 0; i < maps_y; i++) {
       maps[i] = [];
       for(j = 0; j < maps_x; j++) {
         maps[i][j] = {
-          status: 1,
-          subject: subjects[Math.floor(Math.random() * subjects.length)]
+          status:           1,
+          type:             1,
+          type_background:  surfaces_background[Math.floor(Math.random() * surfaces_background.length)],
+          item:             1
         };
       }
     }
@@ -114,14 +120,23 @@
         map_j = j + (map_offset_x * -1);
 
         if(maps[map_i] && maps[map_i][map_j] && maps[map_i][map_j].status === 1) {
-          subject = maps[map_i][map_j].subject;
-          f_style = subject.background;
+          subject = maps[map_i][map_j];
+          f_style = subject.type_background;
         }
 
         ctx.beginPath();
         ctx.rect(item_x, item_y, item_width, item_height);
         ctx.fillStyle = f_style;
         ctx.fill();
+
+        // Затемнение
+        //ctx.fillStyle = "rgba(0, 0, 0, 0.95)";
+        //ctx.fill();
+
+        // Обводка
+        //ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+        //ctx.stroke();
+
         ctx.closePath();
       }
     }

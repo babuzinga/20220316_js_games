@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+<script>
+  let surfaces = {
+    'water': 10,
+    'green': 90,
+  };
+
+  function generateItem(obj)
+  {
+    let result = [], start;
+    for (key in obj) {
+      start = obj[key];
+      while (start > 0) {
+        result.push([key, start--]);
+      }
+    };
+
+    return result[Math.floor(Math.random() * result.length)];
+  }
+
+  let r = generateItem(surfaces);
+
+  surfaces[r[0]] += r[1];
+
+  console.log(r);
+  console.log(surfaces);
+</script>
+</body>
+</html>
