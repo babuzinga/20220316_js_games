@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <style>* { padding: 0; margin: 0; } canvas { display: block; margin: 100px auto 0; }</style>
+</head>
+<body>
+<canvas id="myCanvas" width="600" height="600"></canvas>
+
+<script>
+  let canvas = document.getElementById("myCanvas"),
+      ctx = canvas.getContext("2d"),
+      maps_column = maps_row = 30,
+      item_width = item_height = 30,
+      item_offset_top = item_offset_left = 0,
+      item_padding = 0,
+      item_x,
+      item_y,
+      maps = [],
+      subjects = [],
+      subject,
+      gamer_x = 0,
+      gamer_y = 0,
+      i,
+      j,
+      right_pressed,
+      left_pressed,
+      up_pressed,
+      down_pressed
+  ;
+
+  // Набор объектов на карте
+  subjects[0] = { color: '#8dfc8d' };
+  subjects[1] = { color: '#74ee74' };
+
+  document.addEventListener("keydown", keyDownHandler, false);
+  document.addEventListener("keyup", keyUpHandler, false);
+
+  function keyDownHandler(e) {
+    if (e.code == "ArrowRight") {
+      right_pressed = true;
+    } else if (e.code == 'ArrowLeft') {
+      left_pressed = true;
+    } else if (e.code == 'ArrowUp') {
+      up_pressed = true;
+    } else if (e.code == 'ArrowDown') {
+      down_pressed = true;
+    }
+  }
+
+  function keyUpHandler(e) {
+    if (e.code == 'ArrowRight') {
+      right_pressed = false;
+    } else if (e.code == 'ArrowLeft') {
+      left_pressed = false;
+    }else if (e.code == 'ArrowUp') {
+      up_pressed = false;
+    } else if (e.code == 'ArrowDown') {
+      down_pressed = false;
+    }
+  }
+
+  /**
+   * Генерирование карты
+   */
+  function generateMaps() {
+    for(i = 0; i < maps_column; i++) {
+      maps[i] = [];
+      for(j = 0; j < maps_row; j++) {
+        maps[i][j] = {
+          x: 0,
+          y: 0,
+          status: 1,
+          subject: subjects[Math.floor(Math.random() * subjects.length)]
+        };
+      }
+    }
+  }
+
+  /**
+   * Отрисовка карты
+   */
+  function drawMaps() {
+    for(i = 0; i < maps_column; i++) {
+      for(j = 0; j < maps_row; j++) {
+        if(maps[i][j].status === 1) {
+          item_x = (j * (item_width + item_padding)) + item_offset_left;
+          item_y = (i * (item_height + item_padding)) + item_offset_top;
+          subject = maps[i][j].subject;
+
+
+          maps[i][j].x = item_x;
+          maps[i][j].y = item_y;
+          ctx.beginPath();
+          ctx.rect(item_x, item_y, item_width, item_height);
+          ctx.fillStyle = subject.color;
+          ctx.fill();
+          ctx.closePath();
+        }
+      }
+    }
+  }
+
+  function drawGamer() {
+    ctx.beginPath();
+    ctx.rect(gamer_x, gamer_y, item_width, item_height);
+    ctx.fillStyle = "#000000";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  function draw() {
+    // Очистка объекта canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawMaps();
+    drawGamer();
+
+    if (right_pressed) gamer_x += item_width;
+    if (left_pressed) gamer_x -= item_width;
+    if (up_pressed) gamer_y -= item_width;
+    if (down_pressed) gamer_y += item_width;
+
+    requestAnimationFrame(draw);
+  }
+
+  generateMaps();
+  draw();
+</script>
+</body>
+</html>
