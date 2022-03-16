@@ -3,45 +3,60 @@
 <head>
   <meta charset="UTF-8">
   <title>Title</title>
-  <style>* { padding: 0; margin: 0; } canvas { display: block; margin: 100px auto 0; border: 1px solid; }</style>
+  <style>
+    * { padding: 0; margin: 0; }
+    body, html { background-color: black; color: white; }
+    div { padding: 2px; text-align: center; }
+    canvas { display: block; margin: 20px auto 0; border: 1px solid white; background-color: white; }
+  </style>
 </head>
 <body>
-<div id="myData" style="padding: 10px">1</div>
+<div id="log">1</div>
+<div id="myData">1</div>
 <canvas id="myCanvas" width="600" height="600"></canvas>
 
 <script>
   let canvas = document.getElementById("myCanvas"),
+      log = document.getElementById("log"),
       myData = document.getElementById("myData"),
       ctx = canvas.getContext("2d"),
-      maps_column = maps_row = 10,
-      item_width = item_height = 30,
-      canvas_max_x = canvas.width / item_width,
-      canvas_max_y = canvas.height / item_height,
-      item_offset_top = item_offset_left = 0,
-      item_padding = 0,
-      item_x,
+      maps_x = 300,     // размер карты
+      maps_y = 300,
+      maps_x_gamer = 0, // положение игрока на карте
+      maps_y_gamer = 0,
+      map_offset_x = 0, // сдвиг карты в окне
+      map_offset_y = 0,
+      item_width = item_height = 30,  // размер элемента на карте
+      canvas_item_x = canvas.width / item_width,    // макс. кол-во элементво карты в окне
+      canvas_item_y = canvas.height / item_height,
+      item_offset_top = item_offset_left = 0, // сдвиг элемент при отрисовке (квадрат)
+      item_padding = 0, // отступы
+      item_x, // координаты элемента карты при отрисовке в окне
       item_y,
-      maps = [],
-      map_start_draw_x = map_start_draw_y = 2,
-      subjects = [],
+      maps = [],  // карта
+      
+      subjects = [],  // набор объктов в карте
       subject,
-      gamer_x = 0,
-      gamer_y = 0,
-      i,
-      max_i,
-      j,
-      max_j,
+      gamer_x = gamer_y = 0, // координаты игрока в окне
+      i, map_i,
+      j, map_j,
       f_style,
-      right_pressed,
+      right_pressed,  // состояние кнопок управления
       left_pressed,
       up_pressed,
       down_pressed
   ;
 
+  log.innerText = 'canvas_item_x : ' + canvas_item_x + ' | canvas_item_y : ' + canvas_item_y;
+
   // Набор объектов на карте
-  subjects[0] = { color: '#8dfc8d' };
-  subjects[1] = { color: '#74ee74' };
-  subjects[2] = { color: '#6fe36f' };
+  subjects[0] = { background: '#8dfc8d' };
+  subjects[1] = { background: '#74ee74' };
+  subjects[2] = { background: '#6fe36f' };
+
+  /*subjects[0] = { color: '#ffdd92' };
+  subjects[1] = { color: '#e8c881' };
+  subjects[2] = { color: '#e7cc93' };*/
 
   document.addEventListener("keydown", keyDownHandler, false);
   document.addEventListener("keyup", keyUpHandler, false);
@@ -74,12 +89,10 @@
    * Генерирование карты
    */
   function generateMaps() {
-    for(i = 0; i < maps_column; i++) {
+    for(i = 0; i < maps_y; i++) {
       maps[i] = [];
-      for(j = 0; j < maps_row; j++) {
+      for(j = 0; j < maps_x; j++) {
         maps[i][j] = {
-          x: 0,
-          y: 0,
           status: 1,
           subject: subjects[Math.floor(Math.random() * subjects.length)]
         };
@@ -91,20 +104,18 @@
    * Отрисовка карты
    */
   function drawMaps() {
-    max_i = maps_column > canvas_max_x ? canvas_max_x : maps_column;
-    max_j = maps_row > canvas_max_y ? canvas_max_y : maps_row;
-
-    for(i = map_start_draw_x; i < max_i; i++) {
-      for(j = map_start_draw_y; j < max_j; j++) {
+    for(i = 0; i < canvas_item_y; i++) {
+      for(j = 0; j < canvas_item_x; j++) {
         item_x = (j * (item_width + item_padding)) + item_offset_left;
         item_y = (i * (item_height + item_padding)) + item_offset_top;
-
         f_style = 'white';
-        if(maps[i][j] && maps[i][j].status === 1) {
-          subject = maps[i][j].subject;
-          f_style = subject.color;
-          maps[i][j].x = item_x;
-          maps[i][j].y = item_y;
+
+        map_i = i + (map_offset_y * -1);
+        map_j = j + (map_offset_x * -1);
+
+        if(maps[map_i] && maps[map_i][map_j] && maps[map_i][map_j].status === 1) {
+          subject = maps[map_i][map_j].subject;
+          f_style = subject.background;
         }
 
         ctx.beginPath();
@@ -117,7 +128,10 @@
   }
 
   function drawGamer() {
-    setData(gamer_x + ':' + gamer_y);
+    myData.innerText = gamer_x + ':' + gamer_y +
+        ' [' + maps_x_gamer + ':' + maps_y_gamer + ']' +
+        ' [' + map_offset_x + ':' + map_offset_y + ']'
+    ;
 
     ctx.beginPath();
     ctx.rect(gamer_x * item_width, gamer_y * item_width, item_width, item_height);
@@ -126,29 +140,56 @@
     ctx.closePath();
   }
 
+
+
+
+  let d = 5;
   function draw() {
     // Очистка объекта canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    maps_x_gamer = gamer_x + (map_offset_x * -1);
+    maps_y_gamer = gamer_y + (map_offset_y * -1);
+
+    // Передвижение по X
+    if (right_pressed) {
+      if (gamer_x === canvas_item_x - d && maps_x + map_offset_x > canvas_item_x) map_offset_x -= 1;
+      else if (gamer_x < canvas_item_x - 1 && gamer_x < maps_x - 1) gamer_x += 1;
+      else if (gamer_x >= canvas_item_x - 1 && maps_x_gamer < maps_x - 1) map_offset_x -= 1;
+    }
+
+    if (left_pressed) {
+      if (gamer_x === d && map_offset_x < 0) map_offset_x += 1;
+      else if (gamer_x > 0 && maps_x_gamer < maps_x) gamer_x -= 1;
+      else if (gamer_x === 0 && map_offset_x < 0) map_offset_x += 1;
+    }
+
+    if (down_pressed) {
+      if (gamer_y === canvas_item_y - d && maps_y + map_offset_y > canvas_item_y) map_offset_y -= 1;
+      else if (gamer_y < canvas_item_y - 1 && gamer_y < maps_y - 1) gamer_y += 1;
+      else if (gamer_y >= canvas_item_y - 1 && maps_y_gamer < maps_y - 1) map_offset_y -= 1;
+    }
+
+    if (up_pressed) {
+      if (gamer_y === d && map_offset_y < 0) map_offset_y += 1;
+      else if (gamer_y > 0 && maps_y_gamer < maps_y) gamer_y -= 1;
+      else if (gamer_y === 0 && map_offset_y < 0) map_offset_y += 1;
+    }
+
+
+
+
+
     drawMaps();
     drawGamer();
 
-    if (right_pressed && gamer_x < maps_column - 1) gamer_x += 1;
-    if (left_pressed && gamer_x > 0) gamer_x -= 1;
-    if (up_pressed && gamer_y > 0) gamer_y -= 1;
-    if (down_pressed && gamer_y < maps_row - 1) gamer_y += 1;
-
-    requestAnimationFrame(draw);
+    // requestAnimationFrame(draw);
     // clearInterval(interval); // Needed for Chrome to end game
   }
 
-  function setData(d) {
-    myData.innerText = d;
-  }
-
   generateMaps();
-  draw();
-  //let interval = setInterval(draw, 50);
+  //draw();
+  let interval = setInterval(draw, 50);
 </script>
 </body>
 </html>
