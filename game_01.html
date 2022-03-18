@@ -18,6 +18,26 @@
 <script>
   // https://learn.javascript.ru/object-methods
 
+  // состояние кнопок управления
+  let right_pressed = 0,
+      left_pressed  = 0,
+      up_pressed    = 0,
+      down_pressed  = 0;
+
+  function keyDownHandler (e) {
+    if (e.code == 'ArrowRight' || e.code == 'KeyD')     right_pressed = true;
+    else if (e.code == 'ArrowLeft' || e.code == 'KeyA') left_pressed = true;
+    else if (e.code == 'ArrowUp' || e.code == 'KeyW')   up_pressed = true;
+    else if (e.code == 'ArrowDown' || e.code == 'KeyS') down_pressed = true;
+  }
+
+  function keyUpHandler (e) {
+    if (e.code == 'ArrowRight' || e.code == 'KeyD')     right_pressed = false;
+    else if (e.code == 'ArrowLeft' || e.code == 'KeyA') left_pressed = false;
+    else if (e.code == 'ArrowUp' || e.code == 'KeyW')   up_pressed = false;
+    else if (e.code == 'ArrowDown' || e.code == 'KeyS') down_pressed = false;
+  }
+
   let World = {
     canvas:           document.getElementById("myCanvas"),
     log:              document.getElementById("log"),
@@ -28,7 +48,7 @@
     maps:             [],   // карта
     maps_x_gamer:     0,    // положение игрока на карте
     maps_y_gamer:     0,
-    map_offset_x:     0,    // сдвиг карты в окне
+    map_offset_x:     0,    // сдвиг карты в окне (передвижение игрока по полю)
     map_offset_y:     0,
     item_width:       30,   // размер элемента на карте (30)
     item_height:      30,   // размер элемента на карте (30)
@@ -39,35 +59,13 @@
     item_padding:     0,    // отступы
     gamer_x:          0,
     gamer_y:          0,    // координаты игрока в окне
-    right_pressed:    0,    // состояние кнопок управления
-    left_pressed:     0,
-    up_pressed:       0,
-    down_pressed:     0,
     surfaces_back:    ['#8dfc8d', '#74ee74', '#6fe36f'],
     world_create:     false,
     world_version:    false,
-    interval:         false,
-
-
+    animate:          false,
 
     stat(m) {
       console.log(m + ' [ ver.:' + this.world_version + ' ]');
-    },
-
-    keyDownHandler: function (e) {
-      let self = document.world;
-      if (e.code == 'ArrowRight' || e.code == 'KeyD')     self.right_pressed = true;
-      else if (e.code == 'ArrowLeft' || e.code == 'KeyA') self.left_pressed = true;
-      else if (e.code == 'ArrowUp' || e.code == 'KeyW')   self.up_pressed = true;
-      else if (e.code == 'ArrowDown' || e.code == 'KeyS') self.down_pressed = true;
-    },
-
-    keyUpHandler: function (e) {
-      let self = document.world;
-      if (e.code == 'ArrowRight' || e.code == 'KeyD')     self.right_pressed = false;
-      else if (e.code == 'ArrowLeft' || e.code == 'KeyA') self.left_pressed = false;
-      else if (e.code == 'ArrowUp' || e.code == 'KeyW')   self.up_pressed = false;
-      else if (e.code == 'ArrowDown' || e.code == 'KeyS') self.down_pressed = false;
     },
 
     // Сокращенный вариант записи функции
@@ -88,7 +86,8 @@
       }
     },
 
-    drawMaps() {
+    // Отрисовка первого слоя (земля)
+    drawLLevel1() {
       let i, j, item_x, item_y, f_style, map_i, map_j, subject;
 
       for(i = 0; i < this.canvas_item_y; i++) {
@@ -128,6 +127,7 @@
       }
     },
 
+    // Отрисовка игрока
     drawGamer() {
       this.myData.innerText = this.gamer_x + ':' + this.gamer_y +
           ' [' + this.maps_x_gamer + ':' + this.maps_y_gamer + ']' +
@@ -146,23 +146,9 @@
       this.ctx.closePath();
     },
 
+    // Общая отрисовка
     draw() {
-      if (this.world_create === false) {
-        document.world = this;
-        document.addEventListener("keydown", this.keyDownHandler, false);
-        document.addEventListener("keyup", this.keyUpHandler, false);
-
-        this.ctx = this.canvas.getContext("2d");
-        this.canvas_item_x = this.canvas.width / this.item_width;
-        this.canvas_item_y = this.canvas.height / this.item_height;
-        this.log.innerText = 'canvas_item_x : ' + this.canvas_item_x + ' | canvas_item_y : ' + this.canvas_item_y;
-
-        this.generateMaps();
-        this.world_create = true;
-        this.world_version = Math.floor(Math.random() * (9999 - 1000) + 9999);
-
-        this.stat('The world is ready.');
-      }
+      if (this.world_create === false) this.createWorld();
 
       let map_borders = 5;
 
@@ -173,40 +159,64 @@
       this.maps_y_gamer = this.gamer_y + (this.map_offset_y * -1);
 
       // Передвижение по X
-      if (this.right_pressed) {
+      if (right_pressed) {
         if (this.gamer_x === this.canvas_item_x - 1 - map_borders && this.maps_x + this.map_offset_x > this.canvas_item_x) this.map_offset_x -= 1;
         else if (this.gamer_x < this.canvas_item_x - 1 && this.gamer_x < this.maps_x - 1) this.gamer_x += 1;
         else if (this.gamer_x >= this.canvas_item_x - 1 && this.maps_x_gamer < this.maps_x - 1) this.map_offset_x -= 1;
       }
 
-      if (this.left_pressed) {
+      if (left_pressed) {
         if (this.gamer_x === map_borders && this.map_offset_x < 0) this.map_offset_x += 1;
         else if (this.gamer_x > 0 && this.maps_x_gamer < this.maps_x) this.gamer_x -= 1;
         else if (this.gamer_x === 0 && this.map_offset_x < 0) this.map_offset_x += 1;
       }
 
-      if (this.down_pressed) {
+      // Передвижение по Y
+      if (down_pressed) {
         if (this.gamer_y === this.canvas_item_y - 1 - map_borders && this.maps_y + this.map_offset_y > this.canvas_item_y) this.map_offset_y -= 1;
         else if (this.gamer_y < this.canvas_item_y - 1 && this.gamer_y < this.maps_y - 1) this.gamer_y += 1;
         else if (this.gamer_y >= this.canvas_item_y - 1 && this.maps_y_gamer < this.maps_y - 1) this.map_offset_y -= 1;
       }
 
-      if (this.up_pressed) {
+      if (up_pressed) {
         if (this.gamer_y === map_borders && this.map_offset_y < 0) this.map_offset_y += 1;
         else if (this.gamer_y > 0 && this.maps_y_gamer < this.maps_y) this.gamer_y -= 1;
         else if (this.gamer_y === 0 && this.map_offset_y < 0) this.map_offset_y += 1;
       }
 
-      this.drawMaps();
+      this.drawLLevel1();
       this.drawGamer();
+    },
 
-      //requestAnimationFrame(this.draw);
-      //clearInterval(this.animate); // Needed for Chrome to end game
+    // Расчеты и создание карты
+    createWorld() {
+      document.addEventListener("keydown", keyDownHandler, false);
+      document.addEventListener("keyup", keyUpHandler, false);
+
+      this.ctx = this.canvas.getContext("2d");
+      this.canvas_item_x = this.canvas.width / this.item_width;
+      this.canvas_item_y = this.canvas.height / this.item_height;
+      this.log.innerText = 'canvas_item_x : ' + this.canvas_item_x + ' | canvas_item_y : ' + this.canvas_item_y;
+
+      this.generateMaps();
+      this.world_create = true;
+      this.world_version = Math.floor(Math.random() * (9999 - 1000) + 9999);
+      this.stat('The world is ready.');
+    },
+
+    // Запуск
+    start() {
+      let self = this;
+      this.animate = setInterval(function () { self.draw() }, 50);
+      //requestAnimationFrame(this.draw); // не используется т.к. не нашел возможности изменить скорость отрисовки
+    },
+
+    stop() {
+      clearInterval(this.animate);
     }
   };
 
-  // https://javascript.ru/setInterval
-  setInterval( function() { World.draw.call(World) } , 50)
+  World.start();
 </script>
 </body>
 </html>
