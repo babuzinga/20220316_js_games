@@ -15,6 +15,13 @@
 <div id="myData">1</div>
 <canvas id="myCanvas" width="600" height="600"></canvas>
 
+<img src="/images/base.png" id="base">
+<img src="/images/grass1.png" id="grass1">
+<img src="/images/grass2.png" id="grass2">
+<img src="/images/grass3.png" id="grass3">
+<img src="/images/tree1.png" id="tree1">
+<img src="/images/tree2.png" id="tree2">
+
 <script>
   // https://learn.javascript.ru/object-methods
 
@@ -59,13 +66,23 @@
     item_padding:     0,    // отступы
     gamer_x:          0,
     gamer_y:          0,    // координаты игрока в окне
-    surfaces_back:    ['#8dfc8d', '#74ee74', '#6fe36f'],
+    image_object:     false,
+    images_grass:     ['grass1', 'grass2', 'grass3'],
+    images_trees:     ['tree1', 'tree2'],
     world_create:     false,
     world_version:    false,
     animate:          false,
 
     stat(m) {
       console.log(m + ' [ ver.:' + this.world_version + ' ]');
+    },
+
+    random(values) {
+      return values[Math.floor(Math.random() * values.length)]
+    },
+
+    randomPer(int) {
+      return int >= Math.floor(Math.random() * 100) ? 1 : 0;
     },
 
     // Сокращенный вариант записи функции
@@ -75,44 +92,57 @@
       for(i = 0; i < this.maps_y; i++) {
         this.maps[i] = [];
         for(j = 0; j < this.maps_x; j++) {
+          // Типы: 1 - земля, 2 - дерево
           this.maps[i][j] = {
-            status:           1,
-            type:             1,
-            type_background:  this.surfaces_back[Math.floor(Math.random() * this.surfaces_back.length)],
-            destruction:      0,
-            item:             1
+            level1: {
+              status:           1,
+              type:             1,
+              type_background:  this.random(this.images_grass),
+              destruction:      0,
+              item:             1
+            },
+            level2: {
+              status:           this.randomPer(40),
+              type:             2,
+              type_background:  this.random(this.images_trees),
+              destruction:      0,
+              item:             1
+            },
           };
         }
       }
     },
 
     // Отрисовка первого слоя (земля)
-    drawLLevel1() {
-      let i, j, item_x, item_y, f_style, map_i, map_j, subject;
+    drawLWorld(level) {
+      let i, j, item_x, item_y, image, map_i, map_j, subject;
 
       for(i = 0; i < this.canvas_item_y; i++) {
         for(j = 0; j < this.canvas_item_x; j++) {
           item_x = (j * (this.item_width + this.item_padding)) + this.item_offset_left;
           item_y = (i * (this.item_height + this.item_padding)) + this.item_offset_top;
-          f_style = 'white';
+
+          image = 'base';
 
           map_i = i + (this.map_offset_y * -1);
           map_j = j + (this.map_offset_x * -1);
 
-          if(this.maps[map_i] && this.maps[map_i][map_j] && this.maps[map_i][map_j].status === 1) {
-            subject = this.maps[map_i][map_j];
-            f_style = subject.type_background;
+          if(this.maps[map_i] && this.maps[map_i][map_j] && this.maps[map_i][map_j][level]) {
+            subject = this.maps[map_i][map_j][level];
+            if (subject.status === 1) {
+              image = subject.type_background;
+              this.ctx.beginPath();
+              this.image_object = document.getElementById(image);
+              this.ctx.drawImage(this.image_object, item_x, item_y, this.item_width, this.item_height);
+              this.ctx.fill();
+            }
           }
 
-          this.ctx.beginPath();
-          this.ctx.rect(
-              item_x,
-              item_y,
-              this.item_width,
-              this.item_height
-          );
-          this.ctx.fillStyle = f_style;
-          this.ctx.fill();
+
+
+          // Квадрат
+          //this.ctx.rect(item_x, item_y, this.item_width, this.item_height);
+          //this.ctx.fillStyle = f_style;
 
           // Затемнение
           //ctx.fillStyle = "rgba(0, 0, 0, 0.95)";
@@ -184,8 +214,9 @@
         else if (this.gamer_y === 0 && this.map_offset_y < 0) this.map_offset_y += 1;
       }
 
-      this.drawLLevel1();
+      this.drawLWorld('level1');
       this.drawGamer();
+      this.drawLWorld('level2');
     },
 
     // Расчеты и создание карты
