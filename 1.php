@@ -12,9 +12,7 @@ $map = [
 echo '<table border="1">';
 foreach ($map as $i => $row) {
   echo '<tr>';
-  foreach ($row as $j => $col) {
-    echo "<td style='text-align: center;padding: 2px 20px'>{$j}_{$i}<h2>{$map[$i][$j]}</h2></td>";
-  }
+  foreach ($row as $j => $col) echo "<td style='text-align: center;padding: 2px 20px'>{$j}_{$i}<h2>{$map[$i][$j]}</h2></td>";
   echo '</tr>';
 }
 echo '</table><br>';
@@ -46,7 +44,7 @@ $methods = [
 ];
 $graph = [];
 foreach ($methods as $method)
-  $graph = scanner($method, 1, 1, false, false, $graph);
+  $graph = scanner($method, 0, 0, false, false, $graph);
 
 printGraph($graph);
 
@@ -69,7 +67,7 @@ function scanner($method, $base_x, $base_y, $scan_x, $scan_y, $arr) {
   // Если у проверяемого узла, по выбранному направлению ($method) есть "сосед" (B) ...
   if ($node_next = getNode($scan_x + $method['x'], $scan_y + $method['y'])) {
     // ... то "сосед" помечается в качестве узла к которому можно перейти (A -> B)
-    $arr[$alias_node][] = $node_next;
+    $arr[$alias_node['alias']][] = $node_next['alias'];
     $arr = scanner($method, 1, 1, $scan_x + $method['x'], $scan_y + $method['y'], $arr);
     // Если по направлениею закончились узлы, но в соседнем ряду по направлению они есть ...
   } elseif (getNode($scan_x + $method['x_n'], $scan_y + $method['y_n'])) {
@@ -79,7 +77,7 @@ function scanner($method, $base_x, $base_y, $scan_x, $scan_y, $arr) {
     $arr = scanner($method, 1, 1, $scan_x_next, $scan_y_next, $arr);
   }
 
-  if (!empty($alias_node) && empty($arr[$alias_node])) $arr[$alias_node][] = 'NULL';
+  if (!empty($alias_node) && empty($arr[$alias_node['alias']])) $arr[$alias_node['alias']][] = 'NULL';
 
   return $arr;
 }
@@ -87,13 +85,16 @@ function scanner($method, $base_x, $base_y, $scan_x, $scan_y, $arr) {
 /**
  * @param $x
  * @param $y
- * @param bool $return_value
  * @return bool|string
  */
-function getNode($x, $y, $return_value = false) {
+function getNode($x, $y) {
   global $map;
-  return isset($map[$y][$x]) ? ($return_value === false ? $x.'_'.$y : $map[$y][$x]) : false;
+  return isset($map[$y][$x])
+    ? ['alias' => $x.'_'.$y, 'value' => $map[$y][$x]]
+    : false
+  ;
 }
+
 
 function printGraph($array) {
   if (empty($array)) return;
