@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Way</title>
+  <style>
+    * { padding: 0; margin: 0; }
+    body, html { background-color: black; color: white; }
+    div { padding: 2px; text-align: center; }
+    canvas { display: block; margin: 20px auto 0; background-color: white; }
+  </style>
+</head>
+<body>
+  <div id="myData">1</div>
+  <canvas id="myCanvas"></canvas>
+  <script>
+    // https://itchief.ru/javascript/associative-arrays
+
+
+    let Way = {
+      canvas:           document.getElementById("myCanvas"),
+      ctx:              false,
+      item_width:       50,   // размер элемента на карте (30)
+      item_height:      50,
+      item_padding:     1,    // отступы между элементами карты
+      map:              [
+                          [0, 0, 0, 0, 0, 0, 0, 0],
+                          [0, 1, 0, 0, 0, 0, 0, 0],
+                          [0, 1, 0, 0, 0, 0, 0, 0],
+                          [0, 0, 0, 1, 1, 1, 0, 0],
+                          [0, 0, 0, 0, 1, 0, 0, 0],
+                          [0, 0, 0, 0, 1, 1, 1, 0],
+                        ],
+      map_item_x:       0,
+      map_item_y:       0,
+      map_items:        0,
+      unit_x:           0,
+      unit_y:           0,
+      gold_x:           0,
+      gold_y:           0,
+      ways:             [],
+
+      // Общая отрисовка
+      draw () {
+        this.drawMap();
+        this.drawUnit('black');
+        this.drawGold('#c7c70a');
+      },
+
+      drawMap () {
+        let i, j,tmp_arr;
+        for(i = 0; i < this.map.length; i++) {
+          tmp_arr = this.map[i];
+          for(j = 0; j < tmp_arr.length; j++)
+            this.drawPaddle(j, i, this.map[i][j] === 0 ? '#c4c4c4' : 'green')
+        }
+      },
+
+      drawUnit (back) {
+        this.drawPaddle(this.unit_x, this.unit_y, back);
+      },
+
+      drawGold (back) {
+        this.drawPaddle(this.gold_x, this.gold_y, back);
+      },
+
+      drawWay () {
+        for (let value of this.ways.values()) {
+          this.drawBall(value[0], value[1], 'white');
+        }
+      },
+
+      /**
+       * Отрисовка квадрата на карте
+       * @param map_x - положение по X
+       * @param map_y - положение по Y
+       * @param back  - цвет квадрата
+       */
+      drawPaddle (map_x, map_y, back) {
+        let item_x = map_x * (this.item_width + this.item_padding),
+            item_y = map_y * (this.item_height + this.item_padding);
+
+        this.ctx.beginPath();
+        this.ctx.rect(item_x, item_y, this.item_width, this.item_height);
+        this.ctx.fillStyle = back;
+        this.ctx.fill();
+        this.ctx.closePath();
+      },
+
+      drawBall (map_x, map_y, back) {
+        let item_x = (map_x * (this.item_width + this.item_padding)) + this.item_width / 2,
+            item_y = (map_y * (this.item_height + this.item_padding)) + this.item_height / 2;
+
+        this.ctx.beginPath();
+        this.ctx.arc(item_x, item_y, this.item_width / 5, 0, Math.PI * 2);
+        this.ctx.fillStyle = back;
+        this.ctx.fill();
+        this.ctx.closePath();
+      },
+
+      resizeMap () {
+        let map_width   = (this.map_item_x * this.item_width) + ((this.map_item_x - 1) * this.item_padding),
+            map_height  = (this.map_item_y * this.item_height) + ((this.map_item_y - 1) * this.item_padding);
+
+        this.canvas.setAttribute('width',   parseInt(map_width));
+        this.canvas.setAttribute('height',  parseInt(map_height));
+      },
+
+      go () {
+        let option_way = new Map();
+        this.ways = this.calculateWay(
+            option_way.set(this.unit_x + '_' + this.unit_y, [this.unit_x, this.unit_y]),
+            this.unit_x,
+            this.unit_y
+        );
+
+        this.drawWay();
+        console.log(this.ways);
+      },
+
+      calculateWay (option_way, option_x, option_y) {
+        // Если позиция юнита и позиция золота совпадают - расчет прекаращется
+        if (option_x === this.gold_x && option_x === this.gold_x) return option_way;
+        // Если количество шагов в маршруте привышает общее количество допустимых значение - расчет прекращается
+        if (option_way.size >= 30) return option_way;
+
+        let next = false, direction, i = 0;
+        do {
+          i++;
+          direction = Math.floor(Math.random() * 4);
+          switch (direction) {
+            case 0: if (this.checkMove(option_way, option_x, option_y-1)) { next = true; option_y--; } break; // Вверх
+            case 1: if (this.checkMove(option_way, option_x+1, option_y)) { next = true; option_x++; } break; // Вправо
+            case 2: if (this.checkMove(option_way, option_x, option_y+1)) { next = true; option_y++; } break; // Вниз
+            case 3: if (this.checkMove(option_way, option_x-1, option_y)) { next = true; option_x--; } break; // Влево
+          }
+          if (i === 10) next = true;
+        } while (next !== true)
+
+        option_way.set(option_x + '_' + option_y, [option_x, option_y]);
+        return this.calculateWay(option_way, option_x, option_y);
+      },
+
+      checkMove (option_way, option_x, option_y) {
+        if (option_y < 0 || option_x < 0) return false;
+        if (option_y === this.map_item_y || option_x === this.map_item_x) return false;
+        if (this.map[option_y][option_x] !== 0) return false;
+        if (option_way.has(option_x + '_' + option_y)) return false;
+
+        return true;
+      },
+
+      start () {
+        this.ctx          = this.canvas.getContext("2d");
+        this.map_item_y   = this.map.length;
+        this.map_item_x   = this.map[0].length;
+        this.gold_x       = this.map_item_x - 1;
+        this.gold_y       = this.map_item_y - 1;
+        this.map_items    = this.map_item_x * this.map_item_y;
+
+        this.resizeMap();
+        this.draw();
+        this.go();
+      }
+    };
+
+    Way.start();
+  </script>
+</body>
+</html>
