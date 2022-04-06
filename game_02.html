@@ -16,6 +16,9 @@
   <script>
     // https://itchief.ru/javascript/associative-arrays
 
+    // GRAPH
+    // https://www.o2b.ru/%D0%BF%D0%BE%D0%B8%D1%81%D0%BA-%D1%81%D0%B0%D0%BC%D0%BE%D0%B3%D0%BE-%D0%B4%D0%B5%D1%88%D0%B5%D0%B2%D0%BE%D0%B3%D0%BE-%D0%BC%D0%B0%D1%80%D1%88%D1%80%D1%83%D1%82%D0%B0-%D0%BD%D0%B0-php/
+    // http://versicode.ru/blog/algoritm-poiska-v-shirinu-na-php
 
     let Way = {
       canvas:           document.getElementById("myCanvas"),
@@ -24,21 +27,20 @@
       item_height:      50,
       item_padding:     1,    // отступы между элементами карты
       map:              [
-                          [0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 1, 0, 0, 0, 0, 0, 0],
-                          [0, 1, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 1, 1, 1, 0, 0],
-                          [0, 0, 0, 0, 1, 0, 0, 0],
-                          [0, 0, 0, 0, 1, 1, 1, 0],
+                          [1, 0, 0, 0, 0],
+                          [0, 0, 0, 0, 0],
+                          [0, 1, 0, 1, 1],
+                          [0, 1, 0, 0, 0],
                         ],
       map_item_x:       0,
       map_item_y:       0,
       map_items:        0,
-      unit_x:           0,
-      unit_y:           0,
+      unit_x:           1,
+      unit_y:           1,
       gold_x:           0,
       gold_y:           0,
       ways:             [],
+      graph:            new Map(),
 
       // Общая отрисовка
       draw () {
@@ -107,45 +109,27 @@
       },
 
       go () {
-        let option_way = new Map();
-        this.ways = this.calculateWay(
-            option_way.set(this.unit_x + '_' + this.unit_y, [this.unit_x, this.unit_y]),
-            this.unit_x,
-            this.unit_y
-        );
+        this.generateGraph(this.unit_x, this.unit_y);
 
-        this.drawWay();
-        console.log(this.ways);
+        console.log(this.graph);
       },
 
-      calculateWay (option_way, option_x, option_y) {
-        // Если позиция юнита и позиция золота совпадают - расчет прекаращется
-        if (option_x === this.gold_x && option_x === this.gold_x) return option_way;
-        // Если количество шагов в маршруте привышает общее количество допустимых значение - расчет прекращается
-        if (option_way.size >= 30) return option_way;
+      generateGraph (option_x, option_y) {
+        let tmp = [];
+        // Проверка что можно попасть на соседнюю клетку Верх - Право - Низ - Лево
+        if (this.checkNode(option_x, option_y - 1)) tmp.push(option_x + '.' + (option_y - 1));
+        if (this.checkNode(option_x + 1, option_y)) tmp.push((option_x + 1) + '.' + option_y);
+        if (this.checkNode(option_x, option_y + 1)) tmp.push(option_x + '.' + (option_y + 1));
+        if (this.checkNode(option_x - 1, option_y)) tmp.push((option_x - 1) + '.' + option_y);
 
-        let next = false, direction, i = 0;
-        do {
-          i++;
-          direction = Math.floor(Math.random() * 4);
-          switch (direction) {
-            case 0: if (this.checkMove(option_way, option_x, option_y-1)) { next = true; option_y--; } break; // Вверх
-            case 1: if (this.checkMove(option_way, option_x+1, option_y)) { next = true; option_x++; } break; // Вправо
-            case 2: if (this.checkMove(option_way, option_x, option_y+1)) { next = true; option_y++; } break; // Вниз
-            case 3: if (this.checkMove(option_way, option_x-1, option_y)) { next = true; option_x--; } break; // Влево
-          }
-          if (i === 10) next = true;
-        } while (next !== true)
-
-        option_way.set(option_x + '_' + option_y, [option_x, option_y]);
-        return this.calculateWay(option_way, option_x, option_y);
+        this.graph.set(option_x + '.' + option_y, tmp);
       },
 
-      checkMove (option_way, option_x, option_y) {
-        if (option_y < 0 || option_x < 0) return false;
-        if (option_y === this.map_item_y || option_x === this.map_item_x) return false;
+      checkNode (option_x, option_y) {
+        if (option_x < 0 || option_y < 0) return false;
+        if (option_x === this.map_item_x || option_y === this.map_item_y) return false;
         if (this.map[option_y][option_x] !== 0) return false;
-        if (option_way.has(option_x + '_' + option_y)) return false;
+        if (this.graph.has(option_x + '_' + option_y)) return false;
 
         return true;
       },
