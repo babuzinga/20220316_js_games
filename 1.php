@@ -1,34 +1,13 @@
 <?php
 
-function print_array($array) { echo '<pre>', print_r($array, 1), '</pre>'; }
-
 $map = [
+ [1,1,1,1,1,1],
  [1,1,0,1,1,1],
- [1,1,1,1,1,1],
- [1,1,1,1,1,1],
- [1,1,1,1,1,1],
+ [1,1,0,1,0,0],
+ [1,1,0,1,1,1],
 ];
 
-echo '<table border="1">';
-foreach ($map as $i => $row) {
-  echo '<tr>';
-  foreach ($row as $j => $col) echo "<td style='text-align: center;padding: 2px 20px'>{$j}_{$i}<h2>{$map[$i][$j]}</h2></td>";
-  echo '</tr>';
-}
-echo '</table><br>';
-
-
-
-
-
-
-
-
-
-
-
-
-
+printMap($map);
 
 /*
  * 1 - параметр - перебор по оси X
@@ -44,10 +23,9 @@ $methods = [
 ];
 $graph = [];
 foreach ($methods as $method)
-  $graph = scanner($method, 0, 0, false, false, $graph);
+  $graph = scanner($method, 1, 1, false, false, $graph);
 
 printGraph($graph);
-
 
 /**
  * @param $method
@@ -67,7 +45,7 @@ function scanner($method, $base_x, $base_y, $scan_x, $scan_y, $arr) {
   // Если у проверяемого узла, по выбранному направлению ($method) есть "сосед" (B) ...
   if ($node_next = getNode($scan_x + $method['x'], $scan_y + $method['y'])) {
     // ... то "сосед" помечается в качестве узла к которому можно перейти (A -> B)
-    $arr[$alias_node['alias']][] = $node_next['alias'];
+    if ($alias_node['value'] != 0 && $node_next['value'] != 0) $arr[$alias_node['alias']][] = $node_next['alias'];
     $arr = scanner($method, 1, 1, $scan_x + $method['x'], $scan_y + $method['y'], $arr);
     // Если по направлениею закончились узлы, но в соседнем ряду по направлению они есть ...
   } elseif (getNode($scan_x + $method['x_n'], $scan_y + $method['y_n'])) {
@@ -104,5 +82,53 @@ function printGraph($array) {
     foreach ($row as $item) echo "$item, ";
     echo "<br>";
   }
-
 }
+
+function printArray($array) { echo '<pre>', print_r($array, 1), '</pre>'; }
+
+function printMap($map) {
+  echo '<style>.d1_1 {background:#7de1f3;} .v0 {background:#b1b1b1} .d5_3 {background:#e8d6a7}</style>';
+  echo '<table border="1">';
+  foreach ($map as $i => $row) {
+    echo '<tr>';
+    foreach ($row as $j => $col) echo "<td style='text-align:center;padding:2px 20px' class='d{$j}_{$i} v{$map[$i][$j]}'>{$j}_{$i}<h2>{$map[$i][$j]}</h2></td>";
+    echo '</tr>';
+  }
+  echo '</table><br>';
+}
+
+// ================================================================================================================== //
+// http://versicode.ru/blog/algoritm-poiska-v-shirinu-na-php
+
+$startNode = '1_1';
+$endNode   = '5_3';
+
+$searchQueue = [];
+$searched    = [];
+
+// Добавляем в "поисковый" массив, набор узлов в которые можно попасть с начальной точки ...
+foreach($graph[$startNode] as $value) {
+  $searchQueue[] = $value;
+}
+// ... после чего все узлы перебираются, пока массив не станет пустой
+while($searchQueue) {
+  // Извлекается первый элемент, после чего он удаляется изз массива
+  $node = array_shift($searchQueue);
+  // Если извлеченный элемент отсутствует в "найденных" (т.е. ранее не проверлся) ...
+  if (!in_array($node, $searched)) {
+    // ... элемент сравнивается с искомым - если они равны, поиск завершен
+    if ($node === $endNode) {
+      echo 'Целевая точка найдена';
+      die();
+    } else {
+      // в противном случае,
+      foreach($graph[$node] as $value) {
+        $searchQueue[] = $value;
+      }
+
+      $searched[] = $node;
+    }
+  }
+}
+
+echo 'Целевая точка не найдена';
