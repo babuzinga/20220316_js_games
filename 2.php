@@ -1,15 +1,18 @@
 <?php
 const SEP = '_';
 $map = [
-  [1,1,1,1,1,1,1,1,1,1],
-  [1,1,1,0,1,1,1,1,1,1],
-  [1,1,1,0,0,0,0,0,1,1],
-  [1,1,1,0,1,0,1,1,1,1],
-  [1,1,1,1,1,0,1,0,0,0],
-  [1,1,1,0,1,0,1,1,1,1],
-  [1,1,1,0,1,0,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,1,1,0,1,1,1,1,1,1,1,1],
+  [1,1,1,0,0,0,0,0,1,1,1,1],
+  [1,1,1,0,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,0,1,0,0,0,1,1],
+  [1,1,1,0,1,0,1,1,1,1,1,1],
+  [1,1,1,0,1,0,1,1,1,1,1,1],
+  [1,1,1,0,1,0,1,1,1,1,1,1],
+  [1,1,1,0,1,0,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1],
 ];
-$start    = [1,4];
+$start    = [2,9];
 $end      = [9,6];
 
 
@@ -32,6 +35,12 @@ printMap($map, $openList, $routes, $start, $end);
 //printArray($openList);
 
 /**
+ * Алгоритм поиска по первому наилучшему совпадению на графе,
+ * который находит маршрут с наименьшей стоимостью от одной
+ * вершины (начальной) к другой (целевой, конечной).
+ *
+ * https://ru.wikipedia.org/wiki/A*
+ *
  * @param $map
  * @param $start
  * @param $end
@@ -192,15 +201,15 @@ function printMap($map, $openList, $routes, $start, $end) {
       $d_heft_t = !empty($openList[$alias]) ? $openList[$alias]['heft_t'] : '';
       $d_heft_1 = !empty($openList[$alias]) ? $openList[$alias]['heft_1'] : '';
       $d_heft_2 = !empty($openList[$alias]) ? $openList[$alias]['heft_2'] : '';
-      $cent     = !empty($openList[$alias]) ? '['.$openList[$alias]['cent'].']' : '';
+      $cent     = !empty($openList[$alias]) ? $openList[$alias]['cent'] : '';
       $d_step   = !empty($openList[$alias]['from']) ? 'step' : '';
       $d_step1  = in_array($alias, $routes) ? 'step1' : '';
 
       echo "
 <td class='d{$alias} v{$value} {$d_step} {$d_step1}'>
 <table>
-<tr><td class='red'>{$d_heft_t}</td><td>{$cent}</td><td>{$alias}</td></tr>
-<tr><td></td><td><h2>{$value}</h2></td><td></td></tr>
+<tr><td class='red'>{$d_heft_t}</td><td></td><td>{$alias}</td></tr>
+<tr><td colspan='3'><h2>{$cent} [{$value}]</h2></td></tr>
 <tr><td class='green'>{$d_heft_1}</td><td></td><td class='blue'>{$d_heft_2}</td></tr>
 </table>
 </td>
@@ -214,7 +223,7 @@ function printMap($map, $openList, $routes, $start, $end) {
   echo '
 <form action="/2.php" method="get">
   <button type="submit" name="s" value="' . ( !empty($_GET['s']) ? $_GET['s'] - 1 : 0 ) . '"> <<< </button>
-  <button type="submit" name="s" value="1">RESET</button>
+  <button type="submit">RESET</button>
   <button type="submit" name="s" value="' . ( !empty($_GET['s']) ? $_GET['s'] + 1 : 1 ) . '"> >>> </button>
 </form>
   ';
