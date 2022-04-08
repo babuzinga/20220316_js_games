@@ -11,6 +11,18 @@ $map = [
 ];
 $start    = [1,4];
 $end      = [9,6];
+
+/*$map = [
+  [1,1,1,1,1,1,1],
+  [1,1,0,0,1,1,1],
+  [1,1,1,0,1,1,1],
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1],
+];
+$start    = [1,2];
+$end      = [5,2];*/
+
+
 list($result, $openList, $routeList) = searchWay($map, $start[0], $start[1], $end[0], $end[1]);
 printMap($map, $openList, $routeList, $start, $end);
 
@@ -40,20 +52,23 @@ function searchWay($map, $x_current, $y_current, $x_end, $y_end, $openList = [],
     [ 0,  1, 10], // Ю
   ];
 
-  $openList = [];
+  $openListCurrent = [];
+  $current_alias = ca($x_current, $y_current);
   // Расчет весов соседних клеток по $routes направлениям
   foreach ($routes as $route) {
     $x_d = $x_current + $route[0];
     $y_d = $y_current + $route[1];
     $alias = ca($x_d, $y_d);
 
-    if (inStopList($alias, $routeList)) continue;
+    if (inRouteList($alias, $routeList)) continue;
 
-    // Если по вычеслинным координатам существует клетка и она не является стратовой
+    // Если по вычеслинным координатам существует клетка и она доступна
     // будет расчитан её вес и все значения поместятся в "открытый" лист
     if ( isset($map[$y_d][$x_d]) && $map[$y_d][$x_d] == 1 ) {
+      // вес1 - длинна пути родмителя (если такой имеется)
+      $heft1_parent = !empty($openList[$current_alias]) ? $openList[$current_alias]['heft_1'] : 0;
       // вес1 - длинна пути (прописаны заранее)
-      $heft1 = $route[2];
+      $heft1 = $route[2] + $heft1_parent;
       // вес2 - ивристическое приближение - количество клеток до цели (расчитывается)
       $heft2 = (abs($x_end - $x_d) + abs($y_end - $y_d)) * 10;
 
@@ -63,13 +78,20 @@ function searchWay($map, $x_current, $y_current, $x_end, $y_end, $openList = [],
         'heft_1' => $heft1,
         'heft_2' => $heft2,
         'heft_t' => $heft1 + $heft2,
+        'cent'   => $current_alias,
       ];
-      $openList[$alias] = $data;
+
+      // если ранее значение высчитывалось и оно меньше, оставляем его без изменения
+      $openListCurrent[$alias] =
+        ( empty($openList[$alias]) || $openList[$alias]['heft_1'] >= $heft1 )
+          ? $data
+          : $openList[$alias]
+      ;
     }
   }
 
   // Из получившегося набора, вибирается клетка с минимальным весом
-  $items_min_heft_alias = getMinHeft($openList);
+  $items_min_heft_alias = getMinHeft($openListCurrent);
   // Если количество блоков с минимальным весом несколько - извлекаем один,
   // а остальные помещаем в лист возврата (используется при откате назад, если путь зайдет в тупик)
   if (!empty($items_min_heft_alias) && count($items_min_heft_alias) > 1) {
@@ -87,15 +109,15 @@ function searchWay($map, $x_current, $y_current, $x_end, $y_end, $openList = [],
   // Если не удалось установить элемент с минимальным весом - значит путь
   // вошел в тупик, необходимо откатится к стартовой точке
   if (empty($item_min_heft_alias)) {
-    $back_to = !empty($backList) ? array_pop($backList) : $routeList[1]['from'];
+    //$back_to = !empty($backList) ? array_pop($backList) : $routeList[1]['from'];
+    $back_to = $routeList[1]['from'];
     $c = explode(SEP, $back_to);
     $item = [
       'x' => $c[0],
       'y' => $c[1],
     ];
   } else {
-    $openList[$item_min_heft_alias]['step'] = 1;
-    $item = $openList[$item_min_heft_alias];
+    $item = $openListCurrent[$item_min_heft_alias];
   }
 
   // В СтопЛист заносится информация о переходах
@@ -104,7 +126,9 @@ function searchWay($map, $x_current, $y_current, $x_end, $y_end, $openList = [],
     'to'    => ca($item['x'], $item['y']),
   ];
 
-  if (!empty($_GET['s']) && $step == (int)$_GET['s']) { printArray($backList); return [false, $openList, $routeList]; };
+  $openList = mergeOpenList($openList, $openListCurrent);
+
+  if (!empty($_GET['s']) && $step == (int)$_GET['s']) { echo $current_alias; return [false, $openList, $routeList]; };
 
   list($result, $openList, $routeList) = searchWay($map, $item['x'], $item['y'], $x_end, $y_end, $openList, $routeList, $backList, $step + 1);
 
@@ -128,7 +152,7 @@ function getMinHeft($items) {
   return $min_items;
 }
 
-function inStopList($alias, $routeList) {
+function inRouteList($alias, $routeList) {
   if (empty($routeList) || !is_array($routeList)) return false;
   foreach ($routeList as $step => $item)
     if ($item['from'] == $alias) return $step;
@@ -143,6 +167,15 @@ function removeInBackList($value, $backList) {
       $backList_new[] = $item;
 
   return $backList_new;
+}
+
+function mergeOpenList($openList, $openListCurrent) {
+  if (empty($openListCurrent) || !is_array($openListCurrent)) return $openList;
+  foreach ($openListCurrent as $key => $item) {
+    $openList[$key] = $item;
+  }
+
+  return $openList;
 }
 
 function ca($x, $y) {
@@ -190,17 +223,13 @@ function printMap($map, $openList, $routeList, $start, $end) {
       $d_heft_t = !empty($openList[$alias]) ? $openList[$alias]['heft_t'] : '';
       $d_heft_1 = !empty($openList[$alias]) ? $openList[$alias]['heft_1'] : '';
       $d_heft_2 = !empty($openList[$alias]) ? $openList[$alias]['heft_2'] : '';
-      if ($step = inStopList($alias, $routeList)) {
-        $d_step = 'step';
-        $from   = '['.$routeList[$step - 1]['from'].']';
-      } else {
-        $d_step = $from = '';
-      }
+      $cent     = !empty($openList[$alias]) ? '['.$openList[$alias]['cent'].']' : '';
+      $d_step   = inRouteList($alias, $routeList) ? 'step' : '';
 
       echo "
 <td class='d{$alias} v{$value} {$d_step}'>
 <table>
-<tr><td class='red'>{$d_heft_t}</td><td>{$from}</td><td>{$alias}</td></tr>
+<tr><td class='red'>{$d_heft_t}</td><td>{$cent}</td><td>{$alias}</td></tr>
 <tr><td></td><td><h2>{$value}</h2></td><td></td></tr>
 <tr><td class='green'>{$d_heft_1}</td><td></td><td class='blue'>{$d_heft_2}</td></tr>
 </table>
