@@ -3,152 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Way</title>
+  <link rel="shortcut icon" href="#">
   <style>
-    * { padding: 0; margin: 0; }
-    body, html { background-color: black; color: white; }
-    div { padding: 2px; text-align: center; }
-    canvas { display: block; margin: 20px auto 0; background-color: white; }
+    body {
+      padding: 0;
+      margin: 0;
+      background-color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    canvas {
+      background-color: white;
+    }
   </style>
 </head>
 <body>
-  <div id="myData">1</div>
-  <canvas id="myCanvas"></canvas>
-  <script>
-    // https://itchief.ru/javascript/associative-arrays
-
-    // GRAPH
-    // https://www.o2b.ru/%D0%BF%D0%BE%D0%B8%D1%81%D0%BA-%D1%81%D0%B0%D0%BC%D0%BE%D0%B3%D0%BE-%D0%B4%D0%B5%D1%88%D0%B5%D0%B2%D0%BE%D0%B3%D0%BE-%D0%BC%D0%B0%D1%80%D1%88%D1%80%D1%83%D1%82%D0%B0-%D0%BD%D0%B0-php/
-    // http://versicode.ru/blog/algoritm-poiska-v-shirinu-na-php
-
-    let Way = {
-      canvas:           document.getElementById("myCanvas"),
-      ctx:              false,
-      item_width:       50,   // размер элемента на карте (30)
-      item_height:      50,
-      item_padding:     1,    // отступы между элементами карты
-      map:              [
-                          [1, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0],
-                          [0, 1, 0, 1, 1],
-                          [0, 1, 0, 0, 0],
-                        ],
-      map_item_x:       0,
-      map_item_y:       0,
-      map_items:        0,
-      unit_x:           1,
-      unit_y:           1,
-      gold_x:           0,
-      gold_y:           0,
-      ways:             [],
-      graph:            new Map(),
-
-      // Общая отрисовка
-      draw () {
-        this.drawMap();
-        this.drawUnit('black');
-        this.drawGold('#c7c70a');
-      },
-
-      drawMap () {
-        let i, j,tmp_arr;
-        for(i = 0; i < this.map.length; i++) {
-          tmp_arr = this.map[i];
-          for(j = 0; j < tmp_arr.length; j++)
-            this.drawPaddle(j, i, this.map[i][j] === 0 ? '#c4c4c4' : 'green')
-        }
-      },
-
-      drawUnit (back) {
-        this.drawPaddle(this.unit_x, this.unit_y, back);
-      },
-
-      drawGold (back) {
-        this.drawPaddle(this.gold_x, this.gold_y, back);
-      },
-
-      drawWay () {
-        for (let value of this.ways.values()) {
-          this.drawBall(value[0], value[1], 'white');
-        }
-      },
-
-      /**
-       * Отрисовка квадрата на карте
-       * @param map_x - положение по X
-       * @param map_y - положение по Y
-       * @param back  - цвет квадрата
-       */
-      drawPaddle (map_x, map_y, back) {
-        let item_x = map_x * (this.item_width + this.item_padding),
-            item_y = map_y * (this.item_height + this.item_padding);
-
-        this.ctx.beginPath();
-        this.ctx.rect(item_x, item_y, this.item_width, this.item_height);
-        this.ctx.fillStyle = back;
-        this.ctx.fill();
-        this.ctx.closePath();
-      },
-
-      drawBall (map_x, map_y, back) {
-        let item_x = (map_x * (this.item_width + this.item_padding)) + this.item_width / 2,
-            item_y = (map_y * (this.item_height + this.item_padding)) + this.item_height / 2;
-
-        this.ctx.beginPath();
-        this.ctx.arc(item_x, item_y, this.item_width / 5, 0, Math.PI * 2);
-        this.ctx.fillStyle = back;
-        this.ctx.fill();
-        this.ctx.closePath();
-      },
-
-      resizeMap () {
-        let map_width   = (this.map_item_x * this.item_width) + ((this.map_item_x - 1) * this.item_padding),
-            map_height  = (this.map_item_y * this.item_height) + ((this.map_item_y - 1) * this.item_padding);
-
-        this.canvas.setAttribute('width',   parseInt(map_width));
-        this.canvas.setAttribute('height',  parseInt(map_height));
-      },
-
-      go () {
-        this.generateGraph(this.unit_x, this.unit_y);
-
-        console.log(this.graph);
-      },
-
-      generateGraph (option_x, option_y) {
-        let tmp = [];
-        // Проверка что можно попасть на соседнюю клетку Верх - Право - Низ - Лево
-        if (this.checkNode(option_x, option_y - 1)) tmp.push(option_x + '.' + (option_y - 1));
-        if (this.checkNode(option_x + 1, option_y)) tmp.push((option_x + 1) + '.' + option_y);
-        if (this.checkNode(option_x, option_y + 1)) tmp.push(option_x + '.' + (option_y + 1));
-        if (this.checkNode(option_x - 1, option_y)) tmp.push((option_x - 1) + '.' + option_y);
-
-        this.graph.set(option_x + '.' + option_y, tmp);
-      },
-
-      checkNode (option_x, option_y) {
-        if (option_x < 0 || option_y < 0) return false;
-        if (option_x === this.map_item_x || option_y === this.map_item_y) return false;
-        if (this.map[option_y][option_x] !== 0) return false;
-        if (this.graph.has(option_x + '_' + option_y)) return false;
-
-        return true;
-      },
-
-      start () {
-        this.ctx          = this.canvas.getContext("2d");
-        this.map_item_y   = this.map.length;
-        this.map_item_x   = this.map[0].length;
-        this.gold_x       = this.map_item_x - 1;
-        this.gold_y       = this.map_item_y - 1;
-        this.map_items    = this.map_item_x * this.map_item_y;
-
-        this.resizeMap();
-        this.draw();
-        this.go();
-      }
-    };
-
-    Way.start();
-  </script>
+<canvas id="myCanvas"></canvas>
+<script src="game_02.js"></script>
 </body>
 </html>
