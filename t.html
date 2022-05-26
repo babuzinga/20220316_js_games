@@ -6,19 +6,20 @@
 </head>
 <body>
 
-
-https://stackoverflow.com/questions/18263585/call-javascript-object-method-with-setinterval
 <script>
-  let object = {
-    i: 1,
-    interval: false,
-    draw: function () {
-      this.i++;
-      document.write(this.i + "\r\n");
-    },
+  function f(x, y, arr) {
+    let z = x + y;
+    for (let i = 0; i < arr.length; i++) {
+      z += arr[i];
+      arr[i] = 4;
+    }
+
+    return z;
   }
 
-  setInterval( function() { object.draw.call(object) } , 1000)
+  let p1 = [3, 1];
+  console.log(f(5, 6, p1));
+  console.log(p1);
 </script>
 </body>
 </html>
